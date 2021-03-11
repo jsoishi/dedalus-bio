@@ -18,13 +18,15 @@ from dedalus.tools  import post
 from dedalus.extras import flow_tools
 import pathlib
 
+start = time.time()
 logger = logging.getLogger(__name__)
+
 
 # parameters
 data_dir = pathlib.Path('data/ac_ch')
-if MPI.rank() == 0:
+if MPI.COMM_WORLD.Get_rank() == 0:
     data_dir.mkdir(parents=True, exist_ok=True)
-mesh = [2,2]
+mesh = [4,4]
 nx = 16#128
 ny = 16#128
 nz = 16#128
@@ -100,7 +102,7 @@ flow.add_property("integ(c)", name="Cint")
 flow.add_property("integ(η)", name="ηint")
 
 dt = 1e-3
-start_run_timels  = time.time()
+start_run_time  = time.time()
 try:
     while solver.ok:
         if (solver.iteration-1) % 10 == 0:
@@ -117,6 +119,7 @@ finally:
     logger.info('Sim end time: %f' %solver.sim_time)
     logger.info('Run time: %f' %(end_run_time-start_run_time))
 
+stop = time.time()
 logger.info("Total Run time: {:5.2f} sec".format(stop-start))
 logger.info('beginning join operation')
 for task in analysis_tasks:
