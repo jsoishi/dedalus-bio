@@ -50,7 +50,7 @@ problem.parameters['L'] = L
 problem.parameters['κ'] = κ
 problem.parameters['M'] = M
 
-problem.substitutions["Lap(A)"] = "dx(dx(A)) + dy(dy(A)) + dz(dz(dz(A)))"
+problem.substitutions["Lap(A)"] = "dx(dx(A)) + dy(dy(A)) + dz(dz(A))"
 problem.substitutions["h"] = "3*η**2 - 2*η**3"
 problem.substitutions["fα"] = "2*c**2"
 problem.substitutions["fβ"] = "2*c**2 - 4*c + 2"
