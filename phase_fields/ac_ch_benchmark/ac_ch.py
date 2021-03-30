@@ -51,10 +51,10 @@ problem.parameters['κ'] = κ
 problem.parameters['M'] = M
 
 problem.substitutions["Lap(A)"] = "dx(dx(A)) + dy(dy(A)) + dz(dz(dz(A)))"
-problem.substitutions["h"] = "3*η**2 - 2*η**2"
+problem.substitutions["h"] = "3*η**2 - 2*η**3"
 problem.substitutions["fα"] = "2*c**2"
 problem.substitutions["fβ"] = "2*c**2 - 4*c + 2"
-problem.substitutions["dh"] = "6*η - 4*η"
+problem.substitutions["dh"] = "6*η - 6*η**2"
 problem.substitutions["dfα"] = "4*c"
 problem.substitutions["dfβ"] = "4*c - 4"
 
