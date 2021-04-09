@@ -1,9 +1,16 @@
-"""ac_ch.py
+"""
 
 Coupled Allen-Cahn Cahn-Hilliard equations for phase fields.
 
 Test problem is problem 1 from PRISMS-PF paper,
 DeWitt, Rudraraju, Montiel, Andrews, Thornton (2020, NPJ Computational Materials)
+
+Usage:
+    ac_ch.py [--runid=<id>]
+
+
+Options:
+    --runid=<dir>  ID of this run for folder name [default: ]
 
 """
 from mpi4py import MPI
@@ -11,6 +18,7 @@ import os
 import time
 import logging
 import numpy as np
+from docopt import docopt
 
 import dedalus.public as de
 
@@ -20,17 +28,23 @@ import pathlib
 
 start = time.time()
 logger = logging.getLogger(__name__)
+args = docopt(__doc__)
 
 
 # parameters
-data_dir = pathlib.Path('data/ac_ch')
+runid = args['--runid']
+if runid:
+    data_dir = pathlib.Path('data_'+ runid +'/ac_ch')
+else:
+    data_dir = pathlib.Path('data/ac_ch')
+
 if MPI.COMM_WORLD.Get_rank() == 0:
     data_dir.mkdir(parents=True, exist_ok=True)
 mesh = [4,4]
-nx = 16#128
-ny = 16#128
-nz = 16#128
-ε = 0.01
+nx = 128
+ny = 128
+nz = 128
+ε = 0.05
 
 L_box = 100
 
@@ -62,7 +76,7 @@ problem.substitutions["dfβ"] = "4*c - 4"
 problem.add_equation("dt(η) = -L*((fβ - fα)*dh - κ*Lap(η))")
 
 # Cahn-Hilliard
-problem.add_equation("dt(c) = - M*Lap(dfα*(1-h) + dfβ*h)")
+problem.add_equation("dt(c) = M*Lap(dfα*(1-h) + dfβ*h)")
 
 solver = problem.build_solver(de.timesteppers.RK443)
 
@@ -79,7 +93,7 @@ def ball(x, x0, r, eps):
     # 0 <= f <= 1 
     f = (1-np.tanh((rr - r)/(np.sqrt(2)* eps)))/2
 
-    return f    
+    return f
 
 c0 = solver.state['c']
 η0 = solver.state['η']
@@ -91,21 +105,22 @@ r1 = 12
 cmax = 1
 cmin = 0.4
 
-c0['g'] = (cmax-cmin)* (ball(domain.grids(), x0, r0,0.1) + ball(domain.grids(), x1, r1,0.1)) + cmin
+c0['g'] = (cmax-cmin)* (ball(domain.grids(), x0, r0, ε) + ball(domain.grids(), x1, r1, ε)) + cmin
 η0['g'] = ball(domain.grids(), x0, r0, ε) + ball(domain.grids(), x1, r1, ε)
 
 solver.stop_wall_time = 24*3600
-solver.stop_iteration = 10#000
+solver.stop_iteration = 10000
 solver.stop_sim_time = 5
 flow = flow_tools.GlobalFlowProperty(solver, cadence=10)
 flow.add_property("integ(c)", name="Cint")
 flow.add_property("integ(η)", name="ηint")
 
-dt = 1e-3
+dt = 1e-4
 start_run_time  = time.time()
+logger.info("ε: {:f},   dt: {:f}".format(ε, dt))
 try:
     while solver.ok:
-        if (solver.iteration-1) % 10 == 0:
+        if (solver.iteration-1) % 10 == 0 or (solver.iteration < 5 and solver.iteration > 0):
             logger.info("Step {:d}".format(solver.iteration))
             logger.info("Integrated c = {:10.7e}".format(flow.max("Cint")))
             logger.info("Integrated η = {:10.7e}".format(flow.max("ηint")))
