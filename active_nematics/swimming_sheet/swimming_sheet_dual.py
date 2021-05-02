@@ -36,7 +36,7 @@ Ly = 8.    # box size in y
 ν  = 0.1   # viscosity
 γ  = 40    # coupling parameter for immersed boundary
 hw = 0.1   # half-width of sheet
-b = 0.1    # amplitude of sheet (b in Taylor 1951 eq 1)
+b = 0.25    # amplitude of sheet (b in Taylor 1951 eq 1)
 sigma = 1. # swimming frequency (sigma in Taylor 1951 eq 1)
 k = 4*np.pi/Ly # wavenumber of sheet frequency (k in Taylor 1951 eq 1)
 delta = 0.05 # tanh width for mask;
@@ -65,10 +65,10 @@ K.set_scales(domain.dealias,keep_data=False)
 V.set_scales(domain.dealias,keep_data=False)
 J.set_scales(domain.dealias,keep_data=False)
 W.set_scales(domain.dealias,keep_data=False)
-K['g'], V['g'] =  bdy.sheet(x, y, k, sigma, 0, delta, hw, b)
-# Make fields J, W which are identical to K, V but shifter up in the y axis
-J['g'] = shift_field_y(K['g'], 40)
-W['g'] = shift_field_y(V['g'], 40)
+K['g'], V['g'] =  bdy.sheet(x, y, k, sigma, 0, delta, hw, b, center = (0, 1.5))
+J['g'], W['g'] =  bdy.sheet(x, y, k, sigma, 0, delta, hw, b, center = (0, -1.5))
+#J['g'] = shift_field_y(K['g'], 40)
+#W['g'] = shift_field_y(V['g'], 40)
 
 # 2D Incompressible hydrodynamics
 problem = de.IVP(domain, variables=['p','u','v','ωz'])
@@ -79,8 +79,8 @@ problem.parameters['K']   = K
 problem.parameters['V']   = V
 problem.parameters['J']   = J
 problem.parameters['W']   = W
-problem.add_equation("dt(u) + ν*dy(ωz) + dx(p) =  ωz*v -γ*(K + J)*u") # I'm not so sure about adding J into this equation
-problem.add_equation("dt(v) - ν*dx(ωz) + dy(p) = -ωz*u -γ*K*(v-V) - γ*J*(v-W)") # or this one
+problem.add_equation("dt(u) + ν*dy(ωz) + dx(p) =  ωz*v -γ*(K + J)*u")
+problem.add_equation("dt(v) - ν*dx(ωz) + dy(p) = -ωz*u -γ*K*(v-V) - γ*J*(v-W)")
 problem.add_equation("ωz + dy(u) - dx(v) = 0")
 problem.add_equation("dx(u) + dy(v) = 0",condition="(nx != 0) or (ny != 0)")
 problem.add_equation("p = 0",condition="(nx == 0) and (ny == 0)")
@@ -97,7 +97,7 @@ u = solver.state['u']
 t_wave = 2*np.pi/sigma
 solver.stop_sim_time = 2*t_wave #np.inf
 solver.stop_wall_time = 10*60*60.
-solver.stop_iteration = 2000
+solver.stop_iteration = np.inf
 
 # Analysis
 snapshots = solver.evaluator.add_file_handler('snapshots_test', iter=20, max_writes=50)
@@ -133,9 +133,8 @@ try:
         #F0,G0,τ0 = F0/μ, G0/μ - gravity, τ0/(μ*I)
         #y0 = y0 + V0*dt
         #V0 = V0 + G0*dt
-        K['g'],V['g'] =  bdy.sheet(x, y, k, sigma, solver.sim_time, delta, hw, b)
-        J['g'] = shift_field_y(K['g'], 40)
-        W['g'] = shift_field_y(V['g'], 40)
+        K['g'], V['g'] =  bdy.sheet(x, y, k, sigma, solver.sim_time, delta, hw, b, center = (0, 1.5))
+        J['g'], W['g'] =  bdy.sheet(x, y, k, sigma, solver.sim_time*1.25, delta, hw, b, center = (0, -1.5))
         
         if (solver.iteration-1) % 20 == 0:
             logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
